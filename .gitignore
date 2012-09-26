@@ -10,3 +10,8 @@
 *.lai
 *.la
 *.a
+
+# IDE settings
+.cproject
+.project
+
