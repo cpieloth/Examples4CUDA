@@ -10,6 +10,8 @@
 
 #include <cublas.h>
 
+typedef float ScalarT;
+
 // Some helper functions //
 /**
  * Calculates 1D index from row-major order to column-major order.
@@ -36,7 +38,7 @@ inline void __allocCheck( void* err, const char *file, const int line )
     }
 }
 
-void printMat( const double* const mat, size_t rows, size_t columns, std::string prefix = "Matrix:" )
+void printMat( const ScalarT* const mat, size_t rows, size_t columns, std::string prefix = "Matrix:" )
 {
     // Maximum to print
     const size_t max_rows = 5;
@@ -75,18 +77,18 @@ int main( int argc, char** argv )
     float time;
 
     // Prepare host memory and input data //
-    double* A = ( double* )malloc( HA * WA * sizeof(double) );
+    ScalarT* A = ( ScalarT* )malloc( HA * WA * sizeof(ScalarT) );
     AllocCheck( A );
-    double* B = ( double* )malloc( HB * WB * sizeof(double) );
+    ScalarT* B = ( ScalarT* )malloc( HB * WB * sizeof(ScalarT) );
     AllocCheck( B );
-    double* C = ( double* )malloc( HC * WC * sizeof(double) );
+    ScalarT* C = ( ScalarT* )malloc( HC * WC * sizeof(ScalarT) );
     AllocCheck( C );
 
     for( r = 0; r < HA; r++ )
     {
         for( c = 0; c < WA; c++ )
         {
-            A[index(r,c,HA)] = ( double )index(r,c,HA);
+            A[index(r,c,HA)] = ( ScalarT )index(r,c,HA);
         }
     }
 
@@ -94,7 +96,7 @@ int main( int argc, char** argv )
     {
         for( c = 0; c < WB; c++ )
         {
-            B[index(r,c,HB)] = ( double )index(r,c,HB);
+            B[index(r,c,HB)] = ( ScalarT )index(r,c,HB);
         }
     }
 
@@ -104,25 +106,25 @@ int main( int argc, char** argv )
     cublasInit();
 
     // Prepare device memory //
-    double* dev_A;
-    double* dev_B;
-    double* dev_C;
+    ScalarT* dev_A;
+    ScalarT* dev_B;
+    ScalarT* dev_C;
 
-    status = cublasAlloc( HA * WA, sizeof(double), ( void** )&dev_A );
+    status = cublasAlloc( HA * WA, sizeof(ScalarT), ( void** )&dev_A );
     CudaSafeCall( status );
 
-    status = cublasAlloc( HB * WB, sizeof(double), ( void** )&dev_B );
+    status = cublasAlloc( HB * WB, sizeof(ScalarT), ( void** )&dev_B );
     CudaSafeCall( status );
 
-    status = cublasAlloc( HC * WC, sizeof(double), ( void** )&dev_C );
+    status = cublasAlloc( HC * WC, sizeof(ScalarT), ( void** )&dev_C );
     CudaSafeCall( status );
 
     gettimeofday( &tAllStart, 0 );
 
-    status = cublasSetMatrix( HA, WA, sizeof(double), A, HA, dev_A, HA );
+    status = cublasSetMatrix( HA, WA, sizeof(ScalarT), A, HA, dev_A, HA );
     CudaSafeCall( status );
 
-    status = cublasSetMatrix( HB, WB, sizeof(double), B, HB, dev_B, HB );
+    status = cublasSetMatrix( HB, WB, sizeof(ScalarT), B, HB, dev_B, HB );
     CudaSafeCall( status );
 
     // Call cuBLAS function //
@@ -130,7 +132,8 @@ int main( int argc, char** argv )
 
     // Use of cuBLAS constant CUBLAS_OP_N produces a runtime error!
     const char CUBLAS_OP_N = 'n'; // 'n' indicates that the matrices are non-transposed.
-    cublasDgemm( CUBLAS_OP_N, CUBLAS_OP_N, HA, WB, WA, 1, dev_A, HA, dev_B, HB, 0, dev_C, HC );
+    cublasSgemm( CUBLAS_OP_N, CUBLAS_OP_N, HA, WB, WA, 1, dev_A, HA, dev_B, HB, 0, dev_C, HC ); // call for float
+//    cublasDgemm( CUBLAS_OP_N, CUBLAS_OP_N, HA, WB, WA, 1, dev_A, HA, dev_B, HB, 0, dev_C, HC ); // call for double
     status = cublasGetError();
     CudaSafeCall( status );
 
@@ -139,7 +142,7 @@ int main( int argc, char** argv )
     std::cout << "time (kernel only): " << time << "ms" << std::endl;
 
     // Load result from device //
-    cublasGetMatrix( HC, WC, sizeof(double), dev_C, HC, C, HC );
+    cublasGetMatrix( HC, WC, sizeof(ScalarT), dev_C, HC, C, HC );
     CudaSafeCall( status );
 
     gettimeofday( &tAllEnd, 0 );
