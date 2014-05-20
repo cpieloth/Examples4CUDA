@@ -1,0 +1,6 @@
+Placeholder for build directory.
+
+How to build CMake controlled executables:
+cd build
+cmake ../src
+make

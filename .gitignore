@@ -11,6 +11,10 @@
 *.la
 *.a
 
+# Folders
+bin/*
+build/*
+
 # IDE settings
 .cproject
 .project
